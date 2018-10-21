@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2035
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Instaface", "Instaface\Instaface.csproj", "{93BD283F-F997-414E-8558-0BD07B8A0734}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GraphServer", "GraphServer\GraphServer.csproj", "{55EE2905-E2BA-4D60-AFB1-16C32ABCDB45}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimelineWebServer", "TimelineWebServer\TimelineWebServer.csproj", "{E27EF367-646D-45CB-BAB5-5AC8495B18BE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Instaface.Db", "Instaface.Db\Instaface.Db.csproj", "{C22533FF-7DB5-4573-B2C1-02686292D589}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Instaface.Caching", "Instaface.Caching\Instaface.Caching.csproj", "{72690380-F3A6-4B2E-9DA9-1AF49ABD82E0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot", "Bot\Bot.csproj", "{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{93BD283F-F997-414E-8558-0BD07B8A0734}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93BD283F-F997-414E-8558-0BD07B8A0734}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93BD283F-F997-414E-8558-0BD07B8A0734}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93BD283F-F997-414E-8558-0BD07B8A0734}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55EE2905-E2BA-4D60-AFB1-16C32ABCDB45}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55EE2905-E2BA-4D60-AFB1-16C32ABCDB45}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55EE2905-E2BA-4D60-AFB1-16C32ABCDB45}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55EE2905-E2BA-4D60-AFB1-16C32ABCDB45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E27EF367-646D-45CB-BAB5-5AC8495B18BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E27EF367-646D-45CB-BAB5-5AC8495B18BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E27EF367-646D-45CB-BAB5-5AC8495B18BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E27EF367-646D-45CB-BAB5-5AC8495B18BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C22533FF-7DB5-4573-B2C1-02686292D589}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C22533FF-7DB5-4573-B2C1-02686292D589}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C22533FF-7DB5-4573-B2C1-02686292D589}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C22533FF-7DB5-4573-B2C1-02686292D589}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72690380-F3A6-4B2E-9DA9-1AF49ABD82E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72690380-F3A6-4B2E-9DA9-1AF49ABD82E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72690380-F3A6-4B2E-9DA9-1AF49ABD82E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72690380-F3A6-4B2E-9DA9-1AF49ABD82E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8139C49E-1AA0-46E3-8CD4-77EA5FA40659}
+	EndGlobalSection
+EndGlobal

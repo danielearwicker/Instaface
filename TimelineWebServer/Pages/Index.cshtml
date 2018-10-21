@@ -1,0 +1,97 @@
+﻿@page
+@model TimelineWebServer.Pages.TimelineModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Timeline</title>   
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;            
+        }
+
+        .stats {
+            font-size: 0.6em;
+            color: silver;
+        }
+
+        .timeline {
+            padding: 0 2em;
+        }
+
+        .timeline-item {
+            margin-top: 2em;            
+        }
+
+        .timeline-user {
+            font-weight: bold;
+        }
+
+        .timeline-time {
+            color: silver;
+        }
+
+        .timeline-text {
+            margin: 1em 2em;
+            font-style: italic;
+        }
+
+        .timeline-liked {
+            margin-left: 2em;
+        }
+    </style>
+</head>
+<body>
+    @if (Model.Data == null)
+    {
+        <div>No user found with ID @Model.Id</div>
+        return;
+    }
+
+    <h1>@Model.Data.FirstName @Model.Data.LastName</h1>
+
+    <div class="stats">
+        Duration: @Model.Duration ms
+    </div>
+
+    <div class="timeline">
+        @foreach (var item in Model.Data.Items)
+        {
+            if (item.PostedBy?.Count >= 0)
+            {
+                var by = item.PostedBy.First();
+
+                <div class="timeline-item">
+                    <span class="timeline-time">@item.Linked</span>
+                    <span class="timeline-user">@Model.Data.FirstName</span>
+                    liked a post by <a href="?id=@by.Id">@by.FirstName @by.LastName</a>
+                </div>
+                <div class="timeline-text">@item.Text</div>
+            }
+            else
+            {
+                <div class="timeline-item">
+                    <span class="timeline-time">@item.Linked</span>
+                    <span class="timeline-user">@Model.Data.FirstName</span> posted an update:
+                </div>
+                <div class="timeline-text">@item.Text</div>
+                if (item.LikedBy?.Count > 0)
+                {
+                    <div class="timeline-liked">
+                        Liked by:
+                        @{
+                            foreach (var liker in item.LikedBy)
+                            {
+                                <a href="?id=@liker.Id">@liker.FirstName @liker.LastName</a>
+                            }
+                        }
+                    </div>
+                }
+            }
+        }
+    </div>
+</body>
+</html>
