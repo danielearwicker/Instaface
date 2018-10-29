@@ -23,6 +23,7 @@
       "commandLineArgs": "--urls http://*:6542",
       "launchUrl": "api/values",
       "environmentVariables": {
+        "Consensus:Self": "http://localhost:6542",
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "applicationUrl": "http://localhost:5000"

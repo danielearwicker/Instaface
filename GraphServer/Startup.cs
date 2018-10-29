@@ -7,10 +7,13 @@ using Newtonsoft.Json;
 
 namespace GraphServer
 {
+    using System.Threading;
+    using Cluster;
     using Instaface;
     using Instaface.Caching;
+    using Instaface.Consensus;
     using Instaface.Db;
-    
+
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -31,8 +34,14 @@ namespace GraphServer
                     options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
                 });
 
+            services.AddLogging();
             services.AddSingleton(Configuration);
-
+            services.AddMemoryCache();
+            services.AddSingleton<IRedis, Redis>();
+            services.AddSingleton<IClusterConfig, ClusterConfig>();
+            services.AddSingleton<IConsensusConfig>(s => s.GetRequiredService<IClusterConfig>());
+            services.AddSingleton<IConsensusTransport, ConsensusTransport>();
+            services.AddSingleton<IConsensusNode, ConsensusNode>();
             services.AddSingleton<IDataConnection, DataConnection>();
             services.AddSingleton<IGraphData, GraphDataDb>();
             services.AddSingleton<IGraphCache, GraphCache>();
@@ -47,6 +56,8 @@ namespace GraphServer
             }
 
             app.UseMvc();
+
+            app.ApplicationServices.GetRequiredService<IConsensusNode>().Execute(CancellationToken.None);
 
             app.ApplicationServices.GetRequiredService<IDataConnection>().Setup().Wait();
             ((GraphDataDb)app.ApplicationServices.GetRequiredService<IGraphData>()).Init().Wait();

@@ -31,7 +31,7 @@ namespace GraphServer.Controllers
         }
 
         [HttpPost("query")]
-        public Task<JArray> Query(QueryRequest request)
+        public Task<JObject> Query(QueryRequest request)
         {
             return _graph.Query(request);
         }

@@ -29,6 +29,13 @@ namespace TimelineWebServer.Pages
         public string Text { get; set; }
     }
 
+    public class Stats
+    {
+        public int Calls { get; set; }
+        public double TimeFetching { get; set; }
+        public double TimeRunning { get; set; }
+    }
+
     public class TimelineContainer
     {
         public string FirstName { get; set; }
@@ -39,7 +46,15 @@ namespace TimelineWebServer.Pages
 
         public IEnumerable<TimelineItem> Items => (Posted ?? Empty).Concat(Liked ?? Empty).OrderBy(i => i.Linked);
 
+
         private static readonly IEnumerable<TimelineItem> Empty = Enumerable.Empty<TimelineItem>();
+    }
+
+    public class ResultWrapper
+    {
+        public Stats Stats { get; set; }
+
+        public IReadOnlyCollection<TimelineContainer> Entities { get; set; }
     }
 
     public class TimelineModel : PageModel
@@ -48,13 +63,15 @@ namespace TimelineWebServer.Pages
 
         public TimelineContainer Data { get; private set; }
         
-        public double Duration { get; private set; }
+        public double Network { get; private set; }
+        public double Logic { get; private set; }
+        public double Fetch { get; private set; }
 
         public async Task OnGet()
         {
             Id = int.Parse(Request.Query["id"].FirstOrDefault() ?? "1");
             
-            var query = GraphClient.Query("http://192.168.1.10:6542");
+            var query = GraphClient.Query("http://localhost:6542");
 
             var started = new Stopwatch();
             started.Start();
@@ -76,9 +93,15 @@ namespace TimelineWebServer.Pages
                 }
             });
 
-            Duration = started.ElapsedMilliseconds;
+            var overall = started.Elapsed.TotalMilliseconds;
 
-            Data = JsonConvert.DeserializeObject<TimelineContainer[]>(mapped.ToString()).FirstOrDefault();            
+            var result = JsonConvert.DeserializeObject<ResultWrapper>(mapped.ToString());
+
+            Data = result.Entities.FirstOrDefault();
+
+            Fetch = result.Stats.TimeFetching;
+            Logic = result.Stats.TimeRunning - Fetch;
+            Network = overall - result.Stats.TimeRunning;
         }
     }
 }

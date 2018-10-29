@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Instaface.Caching\Instaface.Caching.csproj" />
+    <ProjectReference Include="..\Instaface.Consensus\Instaface.Consensus.csproj" />
     <ProjectReference Include="..\Instaface.Db\Instaface.Db.csproj" />
   </ItemGroup>
 

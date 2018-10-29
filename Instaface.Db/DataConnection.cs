@@ -7,6 +7,9 @@ using MySql.Data.MySqlClient;
 
 namespace Instaface.Db
 {
+    using System.IO;
+    using Newtonsoft.Json.Linq;
+
     public interface IDataConnection
     {
         Task<IDbConnection> Connect();
@@ -16,14 +19,29 @@ namespace Instaface.Db
 
     public class DataConnection : IDataConnection
     {
-        private readonly IConfiguration _configuration;
+        private readonly string _connectionString;
 
         public DataConnection(IConfiguration configuration)
         {
-            _configuration = configuration;
-        }
+            var searchPath = Path.GetDirectoryName(GetType().Assembly.Location);
+            while (!string.IsNullOrWhiteSpace(searchPath))
+            {
+                var configFile = Path.Combine(searchPath, "Instaface.json");
+                if (File.Exists(configFile))
+                {
+                    var config = JObject.Parse(File.ReadAllText(configFile));
+                    _connectionString = config["DefaultConnection"]?.Value<string>();
+                    break;
+                }
 
-        private string ConnectionString => _configuration.GetConnectionString("DefaultConnection");
+                searchPath = Path.GetDirectoryName(searchPath);
+            }
+            
+            if (_connectionString == null)
+            {
+                _connectionString = configuration?.GetConnectionString("DefaultConnection");
+            }
+        }
 
         private static async Task<IDbConnection> Connect(string connectionString)
         {
@@ -34,12 +52,12 @@ namespace Instaface.Db
 
         public Task<IDbConnection> Connect()
         {
-            return Connect(ConnectionString);
+            return Connect(_connectionString);
         }
 
         public async Task Setup()
         {
-            var details = new MySqlConnectionStringBuilder(ConnectionString);
+            var details = new MySqlConnectionStringBuilder(_connectionString);
             var schema = details.Database;
             details.Database = null;
 

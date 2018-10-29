@@ -26,7 +26,7 @@ namespace Instaface
     public interface IGraphQuery
     {
         [Post("/query")]
-        Task<JArray> Query(QueryRequest request);
+        Task<JObject> Query(QueryRequest request);
     }
 
     public static class GraphClient

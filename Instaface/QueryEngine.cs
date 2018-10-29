@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Diagnostics;
 
 namespace Instaface
 {
@@ -37,6 +39,7 @@ namespace Instaface
         private List<QueryWorkItem> _work = new List<QueryWorkItem>();
 
         public int Calls { get; private set; }
+        public double TimeFetching { get; private set; }
 
         public QueryEngine(IGraphData graph)
         {
@@ -57,20 +60,33 @@ namespace Instaface
             return entities;
         }
 
+        private async Task<T> CaptureTime<T>(Func<Task<T>> op)
+        {
+            Calls++;
+
+            var started = new Stopwatch();
+            started.Start();
+
+            var result = await op();
+
+            TimeFetching += started.Elapsed.TotalMilliseconds;
+            started.Stop();
+
+            return result;
+        }
+
         private async Task FillCache(IEnumerable<int> entities)
         {
             var missing = entities.Except(_cache.Where(e => e.Value.Entity != null).Select(e => e.Key)).ToList();
             if (missing.Count == 0) return;
-
-            Calls++;
-
-            foreach (var entity in await _graph.GetEntities(missing))
+            
+            foreach (var entity in await CaptureTime(() => _graph.GetEntities(missing)))
             {
                 _cache.Get(entity.Id).Entity = entity;
             }
         }
 
-        public async Task FillCache(IEnumerable<int> entities, string associationType)
+        private async Task FillCache(IEnumerable<int> entities, string associationType)
         {
             var missing = entities.Except(_cache.Where(e => e.Value.Associations.ContainsKey(associationType))
                                                 .Select(e => e.Key))
@@ -80,7 +96,7 @@ namespace Instaface
 
             Calls++;
 
-            foreach (var association in await _graph.GetAssociations(missing, associationType))
+            foreach (var association in await CaptureTime(() => _graph.GetAssociations(missing, associationType)))
             {
                 _cache.Get(association.From).Associations.Get(associationType).Add(association);
             }

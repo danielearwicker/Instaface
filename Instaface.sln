@@ -3,17 +3,21 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Instaface", "Instaface\Instaface.csproj", "{93BD283F-F997-414E-8558-0BD07B8A0734}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Instaface", "Instaface\Instaface.csproj", "{93BD283F-F997-414E-8558-0BD07B8A0734}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GraphServer", "GraphServer\GraphServer.csproj", "{55EE2905-E2BA-4D60-AFB1-16C32ABCDB45}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GraphServer", "GraphServer\GraphServer.csproj", "{55EE2905-E2BA-4D60-AFB1-16C32ABCDB45}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimelineWebServer", "TimelineWebServer\TimelineWebServer.csproj", "{E27EF367-646D-45CB-BAB5-5AC8495B18BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TimelineWebServer", "TimelineWebServer\TimelineWebServer.csproj", "{E27EF367-646D-45CB-BAB5-5AC8495B18BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Instaface.Db", "Instaface.Db\Instaface.Db.csproj", "{C22533FF-7DB5-4573-B2C1-02686292D589}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Instaface.Db", "Instaface.Db\Instaface.Db.csproj", "{C22533FF-7DB5-4573-B2C1-02686292D589}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Instaface.Caching", "Instaface.Caching\Instaface.Caching.csproj", "{72690380-F3A6-4B2E-9DA9-1AF49ABD82E0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Instaface.Caching", "Instaface.Caching\Instaface.Caching.csproj", "{72690380-F3A6-4B2E-9DA9-1AF49ABD82E0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot", "Bot\Bot.csproj", "{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bot", "Bot\Bot.csproj", "{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Instaface.Consensus", "Instaface.Consensus\Instaface.Consensus.csproj", "{C83BE7F7-41C7-493F-9EF4-1ACA0232B9F1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Instaface.Consensus.Tests", "Instaface.Consensus.Tests\Instaface.Consensus.Tests.csproj", "{BE86D9AA-0402-4619-BBAA-F6B07742F79A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +49,14 @@ Global
 		{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D1DD2E13-B03F-4C30-BAE9-17F1837F224E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C83BE7F7-41C7-493F-9EF4-1ACA0232B9F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C83BE7F7-41C7-493F-9EF4-1ACA0232B9F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C83BE7F7-41C7-493F-9EF4-1ACA0232B9F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C83BE7F7-41C7-493F-9EF4-1ACA0232B9F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE86D9AA-0402-4619-BBAA-F6B07742F79A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE86D9AA-0402-4619-BBAA-F6B07742F79A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE86D9AA-0402-4619-BBAA-F6B07742F79A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE86D9AA-0402-4619-BBAA-F6B07742F79A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

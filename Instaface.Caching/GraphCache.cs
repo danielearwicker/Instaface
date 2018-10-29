@@ -6,6 +6,8 @@ using Newtonsoft.Json.Linq;
 
 namespace Instaface.Caching
 {
+    using System.Diagnostics;
+
     public interface IGraphCache : IGraphQuery, IGraphData { }
 
     public class GraphCache : IGraphCache
@@ -60,14 +62,25 @@ namespace Instaface.Caching
             return _source.GetRandomEntities(type, count);
         }
 
-        public async Task<JArray> Query(QueryRequest request)
+        public async Task<JObject> Query(QueryRequest request)
         {
             var engine = new QueryEngine(this);
-                
+
+            var started = new Stopwatch();
+            started.Start();
+
             var result = await engine.Query(request);
 
-            _logger.LogInformation("Query required {Calls} calls into the cache", engine.Calls);
-            return result;
+            return new JObject
+            {
+                ["stats"] = new JObject
+                {
+                    ["timeRunning"] = started.Elapsed.TotalMilliseconds,
+                    ["calls"] = engine.Calls,
+                    ["timeFetching"] = engine.TimeFetching
+                },
+                ["entities"] = result
+            };
         }
     }
 }
