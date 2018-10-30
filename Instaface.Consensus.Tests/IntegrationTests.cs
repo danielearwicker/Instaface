@@ -118,21 +118,13 @@
             Debug.WriteLine($"{Self}:{msg}");
         };
 
-        public Task PublishLeader()
-        {
-            return Task.CompletedTask;
-        }
+        public void PublishLeader() { }
 
-        public Task PublishFollower(string leader)
-        {
-            return Task.CompletedTask;
-        }
+        public void PublishFollower(string leader) { }
     }
 
     public class IntegrationTests
     {
-        
-        
         [Fact]
         public async Task AchievesConsensus()
         {

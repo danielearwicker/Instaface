@@ -12,10 +12,12 @@ namespace GraphServer.Controllers
     public class GraphController : ControllerBase, IGraphCache
     {                
         private readonly IGraphCache _graph;
+        private readonly IClusterConfig _cluster;
 
-        public GraphController(IGraphCache graph)
+        public GraphController(IGraphCache graph, IClusterConfig cluster)
         {
             _graph = graph;
+            _cluster = cluster;
         }
         
         [HttpPost("entities")]
@@ -36,16 +38,21 @@ namespace GraphServer.Controllers
             return _graph.Query(request);
         }
 
+        private IGraphDataWrite GetWriteTarget()
+        {
+            return _cluster.Self == _cluster.CurrentLeader ? _graph : _cluster.Write();
+        }
+
         [HttpPost("entities/{type}/create")]
         public Task<int> CreateEntity(string type, [FromBody] JObject attributes)
         {
-            return _graph.CreateEntity(type, attributes);
+            return GetWriteTarget().CreateEntity(type, attributes);
         }
 
         [HttpPost("associations/{type}/from/{from}/to/{to}")]
         public Task CreateAssociation(int from, int to, string type, [FromBody] JObject attributes)
         {
-            return _graph.CreateAssociation(from, to, type, attributes);
+            return GetWriteTarget().CreateAssociation(from, to, type, attributes);
         }
 
         [HttpPost("random/{type}/{count}")]

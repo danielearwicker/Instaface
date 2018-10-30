@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TimelineWebServer
 {
+    using Instaface;
+
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -26,6 +28,11 @@ namespace TimelineWebServer
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
+            services.AddLogging()
+                    .AddSingleton(Configuration)
+                    .AddMemoryCache()
+                    .AddSingleton<IRedis, Redis>()
+                    .AddSingleton<IClusterConfig, ClusterConfig>();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
@@ -44,6 +51,8 @@ namespace TimelineWebServer
 
             app.UseStaticFiles();
             app.UseCookiePolicy();
+
+            app.UseCors(c => c.AllowAnyOrigin());
 
             app.UseMvc();
         }

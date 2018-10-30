@@ -29,9 +29,9 @@ namespace Instaface.Caching
             }
         }
 
-        public GraphCache(IGraphData source, ILogger<GraphCache> logger)
-        {
-            _source = source;
+        public GraphCache(IClusterConfig config, IGraphData source, ILogger<GraphCache> logger)
+        {            
+            _source = new LeaderFollowerDataSource(config, source);
             _logger = logger;
             _entities = new EntityCache(_source);
         }

@@ -1,12 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Instaface;
-using Newtonsoft.Json.Linq;
-
-namespace Bot
+﻿namespace Bot
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Instaface;
+    using Microsoft.Extensions.DependencyInjection;
+    using Newtonsoft.Json.Linq;
+    using Microsoft.Extensions.Configuration;
+
     class Program
     {
         static void Main(string[] args)
@@ -14,19 +16,45 @@ namespace Bot
             MainAsync(args).Wait();
         }
 
+        private static IServiceProvider GetServices(string[] args)
+        {
+            var splitArgs = from a in args
+                            let eq = a.IndexOf('=')
+                            where eq != -1
+                            select KeyValuePair.Create(a.Substring(0, eq), a.Substring(eq + 1));
+
+            var config = new ConfigurationBuilder()
+                         .AddEnvironmentVariables()
+                         .AddInMemoryCollection(splitArgs)
+                         .Build();
+
+            var services = new ServiceCollection()
+                           .AddLogging()
+                           .AddSingleton(config)
+                           .AddMemoryCache()
+                           .AddSingleton<IRedis, Redis>()
+                           .AddSingleton<IClusterConfig, ClusterConfig>();
+
+            return services.BuildServiceProvider();
+        }
+
         private static async Task MainAsync(string[] args)
         {
-            var data = GraphClient.Data(args[0]);
+            var services = GetServices(args);
+            var cluster = services.GetRequiredService<IClusterConfig>();
+
+            var read = cluster.Read();
+            var write = cluster.Write();
             
             var random = new Random();
 
             for (; ; )
             {
                 Console.WriteLine("Selecting random friends");
-                var friends = await data.GetRandomEntities("user", random.Next(20) + 5);
+                var friends = await read.GetRandomEntities("user", random.Next(20) + 5);
 
                 Console.WriteLine("Creating user");
-                var self = await data.CreateEntity("user", new JObject
+                var self = await write.CreateEntity("user", new JObject
                 {
                     ["firstName"] = Pick(random, FakeData.FirstNames),
                     ["lastName"] = Pick(random, FakeData.LastNames)
@@ -35,12 +63,12 @@ namespace Bot
                 Console.WriteLine($"Linking to {friends.Count} friends");
                 foreach (var friend in friends)
                 {
-                    await data.CreateAssociation(self, friend, "friend", "friend");
+                    await write.CreateAssociation(self, friend, "friend", "friend");
                 }
 
                 var activity = random.Next(30) + 5;
                 Console.WriteLine("Get status updates");
-                var statuses = await data.GetRandomEntities("status", activity);
+                var statuses = await read.GetRandomEntities("status", activity);
                 var s = 0;
 
                 Console.WriteLine($"Performing {activity} actions");
@@ -51,19 +79,19 @@ namespace Bot
                         if (s < statuses.Count)
                         {
                             Console.WriteLine("Liking status update");
-                            await data.CreateAssociation(self, statuses.Skip(s++).First(), "liked", "likedby");
+                            await write.CreateAssociation(self, statuses.Skip(s++).First(), "liked", "likedby");
                         }
                     }
                     else
                     {
                         Console.WriteLine("Posting a status update");
                         var text = Pick(random, FakeData.DeepThoughts);
-                        var status = await data.CreateEntity("status", new JObject {["text"] = text});
-                        await data.CreateAssociation(self, status, "posted", "postedby");
+                        var status = await write.CreateEntity("status", new JObject {["text"] = text});
+                        await write.CreateAssociation(self, status, "posted", "postedby");
                     }                    
                 }
             }
-        }
+            }
 
         private static string Pick(Random random, IReadOnlyList<string> options)
         {

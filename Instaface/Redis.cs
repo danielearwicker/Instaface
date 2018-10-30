@@ -3,14 +3,13 @@ using StackExchange.Redis;
 
 namespace Instaface
 {
+    using System;
     using System.Linq;
     using System.Net;
 
     public interface IRedis
     {
-        IDatabase Database { get; }
-
-        IServer Server { get; }
+        IDatabase Database { get; }        
     }
 
     public class Redis : IRedis
@@ -22,14 +21,16 @@ namespace Instaface
         {
             var redisConnectionString = configuration.GetSection("Redis").GetValue<string>("ConnectionString");
 
+            if (string.IsNullOrWhiteSpace(redisConnectionString))
+            {
+                throw new InvalidOperationException("Missing configuration Redis:ConnectionString");
+            }
+
             _redis = ConnectionMultiplexer.Connect(redisConnectionString);
 
             _server = _redis.GetEndPoints().Single();
         }
         
-        public IDatabase Database => _redis.GetDatabase();
-
-        public IServer Server => _redis.GetServer(_server);
-    }
-    
+        public IDatabase Database => _redis.GetDatabase();        
+    }    
 }
