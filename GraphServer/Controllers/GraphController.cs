@@ -9,7 +9,7 @@ namespace GraphServer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GraphController : ControllerBase, IGraphCache
+    public class GraphController : ControllerBase, IGraphCache, IGraphLeader
     {                
         private readonly IGraphCache _graph;
         private readonly IClusterConfig _cluster;
@@ -35,6 +35,7 @@ namespace GraphServer.Controllers
         [HttpPost("query")]
         public Task<JObject> Query(QueryRequest request)
         {
+            _cluster.RaiseEvent("query", new { ids = request.Entities });
             return _graph.Query(request);
         }
 
@@ -59,6 +60,25 @@ namespace GraphServer.Controllers
         public Task<IReadOnlyCollection<int>> GetRandomEntities(string type, int count)
         {
             return _graph.GetRandomEntities(type, count);
+        }
+
+        [HttpGet("unreachable")]
+        public Task<IReadOnlyList<string>> GetUnreachableNodes()
+        {
+            return Task.FromResult(_cluster.CurrentlyUnreachable);
+        }
+
+        [HttpGet("unplugged")]
+        public Task<IReadOnlyList<string>> GetUnpluggedNodes()
+        {
+            return Task.FromResult(_cluster.Unplugged);
+        }
+
+        [HttpPut("unplugged")]
+        public Task<NodeUnplugState> PutUnpluggedNode([FromBody] NodeUnplugState state)
+        {
+            _cluster.SetUnplugged(state.Node, state.Unplugged);
+            return Task.FromResult(state);
         }
     }
 }

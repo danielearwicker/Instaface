@@ -9,11 +9,11 @@ namespace Instaface.Caching
     using System.Diagnostics;
 
     public interface IGraphCache : IGraphQuery, IGraphData { }
-
+    
     public class GraphCache : IGraphCache
     {
-        private readonly IGraphData _source;
-        private readonly ILogger<GraphCache> _logger;
+        private readonly IClusterConfig _config;
+        private readonly IGraphData _source;        
         private readonly object _locker = new object();
 
         private readonly EntityCache _entities;
@@ -29,21 +29,28 @@ namespace Instaface.Caching
             }
         }
 
-        public GraphCache(IClusterConfig config, IGraphData source, ILogger<GraphCache> logger)
-        {            
+        public GraphCache(IClusterConfig config, IGraphData source)
+        {
+            _config = config;
             _source = new LeaderFollowerDataSource(config, source);
-            _logger = logger;
             _entities = new EntityCache(_source);
         }
         
         public Task<IReadOnlyCollection<Entity>> GetEntities(IEnumerable<int> ids)
         {
-            return _entities.Get(ids);
+            return _entities.Get(ids, (hit, idSubset) =>
+            {
+                _config.RaiseEvent("cache", new { hit, ids = idSubset, kind = "entity" });
+            });
         }
 
         public async Task<IReadOnlyCollection<Association>> GetAssociations(IEnumerable<int> ids, string type)
         {
-            return (await GetAssociationCache(type).Get(ids)).SelectMany(a => a).ToList();
+            return (await GetAssociationCache(type).Get(ids, (hit, idSubset) =>
+            {
+                _config.RaiseEvent("cache", new { hit, ids = idSubset, kind = "assoc" });
+            }))
+            .SelectMany(a => a).ToList();
         }
 
         public Task<int> CreateEntity(string type, JObject attributes)

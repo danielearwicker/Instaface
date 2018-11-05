@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace TimelineWebServer
 {
     using Instaface;
+    using Instaface.Monitoring;
 
     public class Startup
     {
@@ -32,6 +33,7 @@ namespace TimelineWebServer
                     .AddSingleton(Configuration)
                     .AddMemoryCache()
                     .AddSingleton<IRedis, Redis>()
+                    .AddMonitoring(Configuration)
                     .AddSingleton<IClusterConfig, ClusterConfig>();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
@@ -52,9 +54,15 @@ namespace TimelineWebServer
             app.UseStaticFiles();
             app.UseCookiePolicy();
 
-            app.UseCors(c => c.AllowAnyOrigin());
-
+            app.UseCors(c => c.SetIsOriginAllowedToAllowWildcardSubdomains()
+                              .AllowAnyOrigin()
+                              .AllowAnyMethod()
+                              .AllowAnyHeader()
+                              .AllowCredentials()
+                              .WithExposedHeaders("Content-Disposition"));
             app.UseMvc();
+
+            app.UseMonitoring();
         }
     }
 }

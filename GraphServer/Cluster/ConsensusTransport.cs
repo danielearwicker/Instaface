@@ -19,13 +19,20 @@
             _config = config;
         }
 
-        public async Task<ICollection<Task<bool?>>> SendHeartbeat(string from, int term, CancellationToken cancellation)
+        public async Task<ICollection<(string node, Task<bool?> response)>> SendHeartbeat(string from, int term, CancellationToken cancellation)
         {            
-            return (await _config.GetOtherNodes()).Select(p => SendHeartbeat(from, p, term, cancellation)).ToList();
+            return (await _config.GetOtherNodes())
+                   .Select(n => (n, SendHeartbeat(from, n, term, cancellation)))
+                   .ToList();
         }
 
-        private static async Task<bool?> SendHeartbeat(string from, string to, int term, CancellationToken cancellation)
+        private async Task<bool?> SendHeartbeat(string from, string to, int term, CancellationToken cancellation)
         {
+            if (_config.IsUnplugged(from) || _config.IsUnplugged(to))
+            {
+                return null;
+            }
+
             var api = RestService.For<IConsensusApi>($"{to}/api/consensus");
 
             try
@@ -34,7 +41,7 @@
             }
             catch (Exception)
             {
-                return default (bool?);
+                return null;
             }
         }
     }

@@ -6,44 +6,44 @@ namespace Instaface.Caching
 
     public class LeaderFollowerDataSource : IGraphData
     {
-        private readonly IClusterConfig _cluster;
-
+        private readonly IClusterConfig _cluster;        
         private readonly IGraphData _db;
-
+        
         public LeaderFollowerDataSource(IClusterConfig cluster, IGraphData db)
         {
             _cluster = cluster;
             _db = db;
         }
         
-        private IGraphData GetSource()
+        private async Task<T> Get<T>(T db)
         {
-            return _cluster.CurrentLeader == _cluster.Self ? _db : _cluster.Leader();
+            await _cluster.WaitForFollowers();
+            return _cluster.CurrentLeader == _cluster.Self ? db : GraphClient.Create<T>(_cluster.CurrentLeader);
+        }
+        
+        public async Task<IReadOnlyCollection<Entity>> GetEntities(IEnumerable<int> id)
+        {
+            return await (await Get<IGraphDataRead>(_db)).GetEntities(id);
         }
 
-        public Task<IReadOnlyCollection<Entity>> GetEntities(IEnumerable<int> id)
+        public async Task<IReadOnlyCollection<Association>> GetAssociations(IEnumerable<int> id, string type)
         {
-            return GetSource().GetEntities(id);
+            return await(await Get<IGraphDataRead>(_db)).GetAssociations(id, type);
         }
 
-        public Task<IReadOnlyCollection<Association>> GetAssociations(IEnumerable<int> id, string type)
+        public async Task<IReadOnlyCollection<int>> GetRandomEntities(string type, int count)
         {
-            return GetSource().GetAssociations(id, type);
+            return await(await Get<IGraphDataRead>(_db)).GetRandomEntities(type, count);
         }
 
-        public Task<IReadOnlyCollection<int>> GetRandomEntities(string type, int count)
+        public async Task<int> CreateEntity(string type, JObject attributes)
         {
-            return GetSource().GetRandomEntities(type, count);
+            return await(await Get<IGraphDataWrite>(_db)).CreateEntity(type, attributes);
         }
 
-        public Task<int> CreateEntity(string type, JObject attributes)
+        public async Task CreateAssociation(int from, int to, string type, JObject attributes)
         {
-            return GetSource().CreateEntity(type, attributes);
-        }
-
-        public Task CreateAssociation(int from, int to, string type, JObject attributes)
-        {
-            return GetSource().CreateAssociation(from, to, type, attributes);
+            await(await Get<IGraphDataWrite>(_db)).CreateAssociation(from, to, type, attributes);
         }
     }
 }

@@ -7,15 +7,16 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Azure.Management.Fluent" Version="1.16.1" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Instaface.Monitoring\Instaface.Monitoring.csproj" />
     <ProjectReference Include="..\Instaface\Instaface.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
 

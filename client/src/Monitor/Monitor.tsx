@@ -1,0 +1,66 @@
+import { observer } from 'mobx-react';
+import * as React from 'react';
+import { MonitorModel } from './MonitorModel';
+import { columnHeaderClass, monitorClass, nodeClass, 
+    nodeLabelClass, nodeStatusItemClass } from './MonitorStyles';
+import { StatusItem } from './StatusItem';
+
+export interface MonitorProps {
+    model: MonitorModel;
+}
+
+function getPositionStyle(item: { left: number; top: number; }) {
+    return { left: `${item.left}px`, top: `${item.top}px` };
+}
+
+export const Monitor = observer(({model}: MonitorProps) => {
+
+    return (
+        <div className={monitorClass} ref={model.setWidthElement}>
+        {
+            model.columns.map(column => (
+                <div className={columnHeaderClass} style={getPositionStyle(column)}>{column.label}</div>
+            ))
+        }
+        {
+            model.nodes.map(node => (
+                <div key={node.key} className={nodeClass} style={getPositionStyle(node)}>
+                    <div className={nodeLabelClass}>
+                    <label>
+                        <input type="checkbox" checked={!node.unplugged} onChange={node.setUnplugged} />
+                        {node.label}
+                    </label>
+                    </div>
+                    {
+                        node.statusItems.map(status => <StatusLine key={status.key} item={status}/>)
+                    }
+                </div>
+            ))
+        }
+        </div>
+    );
+});
+
+interface StatusLineProps {
+    item: StatusItem;
+}
+
+const StatusLine = observer(({item}: StatusLineProps) => {
+
+    const opacity = Math.max(0, 1 - (item.age / 3000));
+
+    const color = item.key === "candidacy" ? "255, 255, 0" :
+                  item.key === "cacheHit" ? "0, 255, 0" :
+                  item.key === "cacheMiss" ? "255, 0, 0" :
+                  "0, 255, 255";
+
+    const style = {
+        backgroundColor: `rgba(${color}, ${opacity})`
+    }
+
+    return (
+        <div className={nodeStatusItemClass} style={style}>
+            {item.text}
+        </div>
+    );
+});

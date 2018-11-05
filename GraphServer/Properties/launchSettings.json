@@ -20,13 +20,13 @@
     },
     "GraphServer": {
       "commandName": "Project",
-      "commandLineArgs": "--urls http://*:6542",
+      "commandLineArgs": "--urls http://*:6600",
       "launchUrl": "api/values",
       "environmentVariables": {
-        "Consensus:Self": "http://localhost:6542",
+        "Consensus:Self": "http://localhost:6600",
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "http://localhost:5000"
+      "applicationUrl": "http://localhost:6600"
     }
   }
 }

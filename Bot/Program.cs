@@ -5,6 +5,7 @@
     using System.Linq;
     using System.Threading.Tasks;
     using Instaface;
+    using Instaface.Monitoring;
     using Microsoft.Extensions.DependencyInjection;
     using Newtonsoft.Json.Linq;
     using Microsoft.Extensions.Configuration;
@@ -29,6 +30,8 @@
                          .Build();
 
             var services = new ServiceCollection()
+                           .AddSingleton<IConfiguration>(config)
+                           .AddMonitoring(config)
                            .AddLogging()
                            .AddSingleton(config)
                            .AddMemoryCache()
@@ -43,13 +46,16 @@
             var services = GetServices(args);
             var cluster = services.GetRequiredService<IClusterConfig>();
 
-            var read = cluster.Read();
-            var write = cluster.Write();
+            Console.WriteLine("Waiting for configuration to refresh...");
+            await cluster.WaitForFollowers();
             
             var random = new Random();
 
             for (; ; )
             {
+                var read = cluster.Read();
+                var write = cluster.Write();
+
                 Console.WriteLine("Selecting random friends");
                 var friends = await read.GetRandomEntities("user", random.Next(20) + 5);
 

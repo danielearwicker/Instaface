@@ -35,15 +35,15 @@
             return null;
         }
 
-        public async Task<ICollection<Task<bool?>>> SendHeartbeat(string from, int term, CancellationToken cancellation)
+        public async Task<ICollection<(string node, Task<bool?> response)>> SendHeartbeat(string from, int term, CancellationToken cancellation)
         {
             if (!Nodes.ContainsKey(from))
             {
-                return Nodes.Values.Select(n => FailToSend()).ToList();
+                return Nodes.Select(n => (n.Key, FailToSend())).ToList();
             }
 
             return Nodes.Where(n => n.Key != from)
-                     .Select(n => Task.Run(async () => (bool?) await n.Value.HandleHeartbeat(term, from), cancellation))
+                     .Select(n => (n.Key, Task.Run(async () => (bool?) await n.Value.HandleHeartbeat(term, from), cancellation)))
                      .ToList();
         }
 
@@ -103,7 +103,7 @@
             }
             
             return leader[0];
-        }
+        }        
     }
 
     public class TestConfig : IConsensusConfig
@@ -121,6 +121,8 @@
         public void PublishLeader() { }
 
         public void PublishFollower(string leader) { }
+        public void PublishReachable(string node, int term, bool reachable) { }
+        public void RaiseEvent(string type, object info = null) { }
     }
 
     public class IntegrationTests

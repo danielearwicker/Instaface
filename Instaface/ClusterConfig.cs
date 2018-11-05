@@ -1,6 +1,7 @@
 ﻿namespace Instaface
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -9,7 +10,9 @@
     using Microsoft.Extensions.Caching.Memory;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    
+    using Monitoring;
+    using Newtonsoft.Json.Linq;
+
     public interface IClusterConfig : IConsensusConfig
     {
         Task<IReadOnlyList<string>> GetOtherNodes();
@@ -18,31 +21,47 @@
 
         IReadOnlyList<string> CurrentFollowers { get; }
 
-        string RandomFollower { get; }
+        IReadOnlyList<string> CurrentlyUnreachable { get; }
+
+        IReadOnlyList<string> ShuffledFollowers { get; }
+
+        Task WaitForFollowers();
+
+        void SetUnplugged(string node, bool unplugged);
+
+        bool IsUnplugged(string node);
+
+        IReadOnlyList<string> Unplugged { get; }
     }
 
     public class ClusterConfig : IClusterConfig
     {
         private readonly IRedis _redis;
         private readonly IMemoryCache _cache;
+        private readonly IMonitoringEvents _monitoring;
         private readonly ILogger _logger;
-        
+
+        private readonly ConcurrentDictionary<string, bool> _reachable = new ConcurrentDictionary<string, bool>();
+
         private const string ConsensusNodesKey = "consensus:nodes";
         private const string ConsensusLeaderKey = "consensus:leader";
         private const string ConsensusFollowerKeyPrefix = "consensus:follower:";
 
         private readonly Random _random = new Random();
 
-        public ClusterConfig(IConfiguration configuration, IRedis redis, IMemoryCache cache, ILogger<ClusterConfig> logger)
+        private readonly HashSet<string> _unplugged = new HashSet<string>();
+
+        public ClusterConfig(IConfiguration configuration, IRedis redis, IMemoryCache cache, ILogger<ClusterConfig> logger, IMonitoringEvents monitoring)
         {
             _redis = redis;
             _cache = cache;
             _logger = logger;
+            _monitoring = monitoring;
 
             var consensus = configuration.GetSection("Consensus");
             Self = consensus.GetValue<string>("Self");
-            ElectionPeriodMin = consensus.GetValue("ElectionPeriodMin", 1200);
-            ElectionPeriodMax = consensus.GetValue("ElectionPeriodMax", 1700);
+            ElectionPeriodMin = consensus.GetValue("ElectionPeriodMin", 2400);
+            ElectionPeriodMax = consensus.GetValue("ElectionPeriodMax", 3600);
             HeartbeatPeriod = consensus.GetValue("HeartbeatPeriod", 1000);
             Log = msg => _logger.LogInformation(msg);
 
@@ -65,7 +84,10 @@
 
         public IReadOnlyList<string> CurrentFollowers { get; private set; } = new List<string>();
 
-        public string RandomFollower
+        public IReadOnlyList<string> CurrentlyUnreachable =>
+            _reachable.Where(r => !r.Value).Select(r => r.Key).ToList();
+
+        public IReadOnlyList<string> ShuffledFollowers
         {
             get
             {
@@ -78,24 +100,104 @@
                     }
 
                     _logger.LogWarning("Using leader due to scarcity of followers");
-                    return CurrentLeader;
+                    return new[] {CurrentLeader};
                 }
 
+                var shuffle = followers.ToList();
                 lock (_random)
                 {
-                    return followers[_random.Next(0, followers.Count)];
+                    for (var n = 0; n < shuffle.Count; n++)
+                    {
+                        var swapWith = _random.Next(n, shuffle.Count);
+                        if (swapWith != n)
+                        {
+                            var swapping = shuffle[n];
+                            shuffle[n] = shuffle[swapWith];
+                            shuffle[swapWith] = swapping;
+                        }
+                    }
+
+                    return shuffle;
                 }
             }
         }
 
+        public async Task WaitForFollowers()
+        {
+            while (CurrentFollowers.Count == 0 || string.IsNullOrWhiteSpace(CurrentLeader))
+            {
+                await Task.Delay(500);
+            }
+        }
+
+        public void SetUnplugged(string node, bool unplugged)
+        {
+            lock (_unplugged)
+            {
+                if (unplugged)
+                {
+                    _unplugged.Add(node);
+                }
+                else
+                {
+                    _unplugged.Remove(node);
+                }                
+            }
+        }
+
+        public bool IsUnplugged(string node)
+        {
+            lock (_unplugged)
+            {
+                return _unplugged.Contains(node);
+            }
+        }
+
+        public IReadOnlyList<string> Unplugged
+        {
+            get
+            {
+                lock (_unplugged)
+                {
+                    return _unplugged.ToList();
+                }
+            }            
+        }
+
+        public void RaiseEvent(string type, object info = null)
+        {
+            var jObj = info == null ? new JObject() : JObject.FromObject(info);
+            jObj["type"] = type;
+            jObj["source"] = Self;
+
+            _monitoring.Event(jObj);
+        }
+
         public void PublishLeader()
         {
+            Console.WriteLine("Became leader");
             CurrentLeader = Self;
+
+            _reachable.Clear();
+
+            RaiseEvent("leader");
         }
 
         public void PublishFollower(string leader)
         {
+            Console.WriteLine($"Following {leader}");
             CurrentLeader = leader;
+
+            RaiseEvent("follower", new {leader});
+        }
+
+        public void PublishReachable(string about, int term, bool reachable)
+        {
+            if (_reachable.TryAdd(about, reachable) || 
+                _reachable.TryUpdate(about, reachable, !reachable))
+            {
+                RaiseEvent("reachable", new { about, term, reachable });                
+            }            
         }
 
         private static (string Value, DateTime Expires) ParseTtlString(string timedString, char separator = '@')
@@ -122,21 +224,28 @@
             return BuildTtlString(value, DateTime.UtcNow.Add(ttl), separator);
         }
 
-        private Task<IReadOnlyCollection<string>> GetAllNodes()
+        private async Task<IReadOnlyCollection<string>> GetAllNodes()
         {
-            return _cache.GetOrCreateAsync<IReadOnlyCollection<string>>(ConsensusNodesKey, async e =>
-                (await _redis.Database.SetMembersAsync(ConsensusNodesKey))
-                .Select(n => ParseTtlStringNonExpired(n.ToString()))
-                .Where(n => !string.IsNullOrWhiteSpace(n))
-                .Distinct()
-                .ToList());
+            var nodes = _cache.Get<IReadOnlyCollection<string>>(ConsensusNodesKey);
+            if (nodes == null)
+            {
+                nodes = (await _redis.Database.SetMembersAsync(ConsensusNodesKey))
+                                     .Select(n => ParseTtlString(n.ToString()).Value)
+                                     .Where(n => !string.IsNullOrWhiteSpace(n))
+                                     .Distinct()
+                                     .ToList();
+
+                _cache.Set(ConsensusNodesKey, nodes, TimeSpan.FromSeconds(20));
+            }
+            
+            return nodes;
         }
 
         public async Task<IReadOnlyList<string>> GetOtherNodes()
         {            
             return  (await GetAllNodes()).Where(n => n != Self).ToList();
         }
-
+        
         private async Task Poll(CancellationToken quit)
         {
             while (!quit.IsCancellationRequested)

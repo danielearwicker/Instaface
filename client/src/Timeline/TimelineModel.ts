@@ -1,5 +1,5 @@
-import { jsonDateParser } from "json-date-parser";
 import { computed, observable } from "mobx";
+import { api } from '../api';
 
 export interface Entity {
     id: number;
@@ -26,11 +26,11 @@ export interface LikedPost extends Post {
 }
 
 export function isOwnerPost(post: Post): post is OwnerPost {
-    return "likedby" in post;
+    return post && ("likedby" in post);
 }
 
 export function isLikedPost(post: Post): post is LikedPost {
-    return "postedby" in post;
+    return post && ("postedby" in post);
 }
 
 export interface TimelineOwner extends User {
@@ -66,7 +66,7 @@ export class TimelineModel {
         const parts = posted.concat(liked);
         parts.sort((a, b) => b.linked.getTime() - a.linked.getTime());
 
-        return parts;
+        return parts.filter(p => !!p);
     }
 
     constructor() {
@@ -81,9 +81,7 @@ export class TimelineModel {
             this.timeline = undefined;
             return;
         }
-        
-        const response = await fetch(`http://localhost:6543/api/timeline/${id}`);
-        const json = await response.text();        
-        this.timeline = JSON.parse(json, jsonDateParser);
+
+        this.timeline = await api(`timeline/${id}`);
     }
 }

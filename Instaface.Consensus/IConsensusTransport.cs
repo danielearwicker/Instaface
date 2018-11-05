@@ -6,6 +6,6 @@
 
     public interface IConsensusTransport
     {
-        Task<ICollection<Task<bool?>>> SendHeartbeat(string from, int term, CancellationToken cancellation);
+        Task<ICollection<(string node, Task<bool?> response)>> SendHeartbeat(string from, int term, CancellationToken cancellation);
     }
 }

@@ -4,6 +4,7 @@
     using System.Threading.Tasks;
     using Instaface;
     using Microsoft.AspNetCore.Mvc;
+    using Models;
     using Newtonsoft.Json.Linq;
 
     [Route("api/[controller]")]
@@ -16,7 +17,21 @@
         {
             _cluster = cluster;
         }
-        
+
+        [HttpGet("cluster")]
+        public async Task<ClusterState> GetClusterState()
+        {
+            await _cluster.WaitForFollowers();
+
+            return new ClusterState
+            {
+                Leader = _cluster.CurrentLeader,
+                Followers = _cluster.CurrentFollowers,
+                Unreachable = await _cluster.Leader().GetUnreachableNodes(),
+                Unplugged = _cluster.Unplugged
+            };
+        }
+
         [HttpGet("{userId}")]
         public async Task<JObject> GetTimeline(int userId)
         {

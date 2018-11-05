@@ -1,5 +1,6 @@
 ﻿namespace Instaface.Consensus
 {
+    using System;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -22,6 +23,8 @@
                 }
             }
 
+            Console.WriteLine("Missed heartbeat!");
+
             node.BeginCandidacy();
         };
 
@@ -29,33 +32,35 @@
         {
             var cancellation = new CancellationTokenSource();
             
-            var requests = await node.SendHeartbeat(cancellation.Token);
+            var requests = node.SendHeartbeat(cancellation.Token).requests;
             if (requests == null)
             {
                 // Apparently not a candidate now
                 return;
             }
 
-            var nodes = requests.Count + 1;
+            var responses = (await requests).Select(h => h.response).ToList();
+            
+            var nodes = responses.Count + 1;
             var votesRequired = nodes / 2; // plus ours -> majority
 
             var timeLimit = Task.Delay(node.Config.ElectionPeriodMax);
             
-            while (!timeLimit.IsCompleted && votesRequired > 0 && requests.Count > 0)
+            while (!timeLimit.IsCompleted && votesRequired > 0 && responses.Count > 0)
             {
                 node.Config.Log($"requires {votesRequired} votes");
 
-                var completed = await Task.WhenAny(requests.Concat(new[] { timeLimit, node.HeartbeatReceived }));
+                var completed = await Task.WhenAny(responses.Concat(new[] { timeLimit, node.HeartbeatReceived }));
 
                 if (node.RespondToHeartbeat())
                 {
                     break;
                 }
                 
-                var vote = requests.FirstOrDefault(r => r == completed);
+                var vote = responses.FirstOrDefault(r => r == completed);
                 if (vote != null)
                 {
-                    requests.Remove(vote);
+                    responses.Remove(vote);
 
                     if (await vote == true)
                     {
@@ -79,8 +84,10 @@
         public static readonly ConsensusMode Leader = async node =>
         {
             var cancellation = new CancellationTokenSource();
+            
+            var heartbeat = node.SendHeartbeat(cancellation.Token);
 
-            var tasks = await node.SendHeartbeat(cancellation.Token);
+            var requests = await heartbeat.requests;
 
             var timeLimit = Task.Delay(node.Config.HeartbeatPeriod);
             
@@ -95,12 +102,21 @@
             }
 
             cancellation.Cancel();
+            
+            foreach (var r in requests)
+            {
+                var completed = r.response.IsCompleted &&
+                                !r.response.IsFaulted &&
+                                !r.response.IsCanceled;
 
-            var grouped = tasks.ToLookup(t => !t.IsCompleted || t.IsFaulted || t.IsCanceled ? default(bool?) : t.Result);
-            var followers = grouped[true];
-            var objectors = grouped[false];
-            var unknown = grouped[null];
-            node.Config.Log($"followers: {followers.Count()}, objectors: {objectors.Count()}, unknown: {unknown.Count()}");
+                var response = completed ? await r.response : null; 
+                if (response == null)
+                {
+                    Console.WriteLine($"Heartbeat failed to send to {r.node}");
+                }
+
+                node.Config.PublishReachable(r.node, heartbeat.term, response != null);
+            }     
         };
     }
 }

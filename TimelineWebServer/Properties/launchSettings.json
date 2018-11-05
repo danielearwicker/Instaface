@@ -17,12 +17,11 @@
     },
     "TimelineWebServer": {
       "commandName": "Project",
-      "commandLineArgs": "--urls http://*:6543",
-      "launchBrowser": true,
+      "commandLineArgs": "--urls http://*:6500",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "http://localhost:6543"
+      "applicationUrl": "http://localhost:6500"
     }
   }
 }

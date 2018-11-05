@@ -5,6 +5,8 @@ using Newtonsoft.Json.Linq;
 
 namespace Instaface
 {
+    using System;
+
     public interface IGraphDataRead
     {
         [Post("/entities")]
@@ -34,17 +36,89 @@ namespace Instaface
         Task<JObject> Query(QueryRequest request);
     }
 
+    public class NodeUnplugState
+    {
+        public string Node { get; set; }
+        public bool Unplugged { get; set; }
+    }
+
+    public interface IGraphLeader
+    {
+        [Get("/unreachable")]
+        Task<IReadOnlyList<string>> GetUnreachableNodes();
+
+        [Get("/unplugged")]
+        Task<IReadOnlyList<string>> GetUnpluggedNodes();
+
+        [Put("/unplugged")]
+        Task<NodeUnplugState> PutUnpluggedNode([Body] NodeUnplugState state);
+    }
+
+    public class FailOverClient : IGraphDataRead, IGraphQuery
+    {
+        private readonly IReadOnlyList<string> _uris;
+
+        public FailOverClient(IReadOnlyList<string> uris)
+        {
+            _uris = uris;
+        }
+
+        private T Retry<T>(Func<string, T> attempt)
+        {
+            Exception lastException = null;
+
+            foreach (var uri in _uris)
+            {
+                try
+                {
+                    return attempt(uri);
+                }
+                catch (Exception x)
+                {
+                    lastException = x;
+                }
+            }
+
+            throw lastException ?? new InvalidOperationException();
+        }
+
+        public Task<IReadOnlyCollection<Entity>> GetEntities(IEnumerable<int> id)
+        {
+            return Retry(uri => GraphClient.Create<IGraphDataRead>(uri).GetEntities(id));
+        }
+
+        public Task<IReadOnlyCollection<Association>> GetAssociations(IEnumerable<int> id, string type)
+        {
+            return Retry(uri => GraphClient.Create<IGraphDataRead>(uri).GetAssociations(id, type));
+        }
+
+        public Task<IReadOnlyCollection<int>> GetRandomEntities(string type, int count)
+        {
+            return Retry(uri => GraphClient.Create<IGraphDataRead>(uri).GetRandomEntities(type, count));
+        }
+
+        public Task<JObject> Query(QueryRequest request)
+        {
+            return Retry(uri => GraphClient.Create<IGraphQuery>(uri).Query(request));
+        }
+    }
+
     public static class GraphClient
     {
-        public static T Create<T>(string server) => RestService.For<T>($"{server}/api/graph");
-        
-        public static IGraphDataRead Read(this IClusterConfig config) => Create<IGraphDataRead>(config.RandomFollower);
+        public static T Create<T>(string server)
+        {
+            var url = $"{server}/api/graph";
+            Console.WriteLine($"{typeof(T).Name} at {url}");
+            return RestService.For<T>(url);
+        }
 
-        public static IGraphDataWrite Write(this IClusterConfig config) => config.Leader();
+        public static IGraphDataRead Read(this IClusterConfig config) => new FailOverClient(config.ShuffledFollowers);
 
-        public static IGraphData Leader(this IClusterConfig config) => Create<IGraphData>(config.CurrentLeader);
+        public static IGraphDataWrite Write(this IClusterConfig config) => Create<IGraphDataWrite>(config.CurrentLeader);
 
-        public static IGraphQuery Query(this IClusterConfig config) => Create<IGraphQuery>(config.RandomFollower);
+        public static IGraphLeader Leader(this IClusterConfig config) => Create<IGraphLeader>(config.CurrentLeader);
+
+        public static IGraphQuery Query(this IClusterConfig config) => new FailOverClient(config.ShuffledFollowers);
 
         public static Task CreateAssociation(this IGraphDataWrite client, int from, int to, string type)
         {

@@ -23,7 +23,8 @@
 
         Task HeartbeatReceived { get; }
 
-        Task<ICollection<Task<bool?>>> SendHeartbeat(CancellationToken cancellation);
+        (int term, Task<ICollection<(string node, Task<bool?> response)>> requests) 
+            SendHeartbeat(CancellationToken cancellation);
 
         Random Random { get; }
     }
@@ -40,6 +41,9 @@
 
         void PublishLeader();
         void PublishFollower(string leader);
+        void PublishReachable(string node, int term, bool reachable);
+
+        void RaiseEvent(string type, object info = null);
     }
     
     public class ConsensusNode : IConsensusNode, IConsensusInternals
@@ -56,9 +60,11 @@
         }
 
         public IConsensusTransport Transport { get; }
-        public Task HeartbeatReceived => _heartbeats.WhenReadable;
-        public IConsensusConfig Config { get; }
         
+        public IConsensusConfig Config { get; }
+
+        public Task HeartbeatReceived => _heartbeats.WhenReadable;
+
         public ConsensusStateSnapshot State
         {
             get
@@ -72,28 +78,44 @@
 
         public int BeginCandidacy()
         {
+            var term = -1;
+
             lock (_locker)
             {
+                
                 if (_state.Mode == ConsensusModes.Follower)
                 {
                     _state = new ConsensusStateSnapshot(ConsensusModes.Candidate, Config.Self, _state.Term + 1);
                     Config.Log($"standing for election in term {_state.Term}");
-                    return _state.Term;
-                }
-
-                return -1;
+                    term = _state.Term;                    
+                }                
             }
+
+            if (term != -1)
+            {
+                Config.RaiseEvent("candidacy", new {enabled = true, term});
+            }
+
+            return term;
         }
 
         public void EndCandidacy()
         {
+            var term = -1;
+
             lock (_locker)
             {
                 if (_state.Mode == ConsensusModes.Candidate)
                 {
                     Config.Log($"abandoning candidacy {_state.Term}");
                     _state = new ConsensusStateSnapshot(ConsensusModes.Follower, null, _state.Term);
+                    term = _state.Term;
                 }
+            }
+            
+            if (term != -1)
+            {
+                Config.RaiseEvent("candidacy", new { enabled = false, term });
             }
         }
 
@@ -111,7 +133,8 @@
             }
         }
 
-        public Task<ICollection<Task<bool?>>> SendHeartbeat(CancellationToken cancellation)
+        public (int term, Task<ICollection<(string node, Task<bool?> response)>> requests) 
+            SendHeartbeat(CancellationToken cancellation)
         {
             int term;
 
@@ -119,13 +142,13 @@
             {
                 if (_state.Mode == ConsensusModes.Follower)
                 {
-                    return null;
+                    return (-1, null);
                 }
 
                 term = _state.Term;
             }
 
-            return Transport.SendHeartbeat(Config.Self, term, cancellation);
+            return (term, Transport.SendHeartbeat(Config.Self, term, cancellation));
         }
 
         public Random Random { get; } = new Random();

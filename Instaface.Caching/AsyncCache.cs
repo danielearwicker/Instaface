@@ -4,36 +4,45 @@ using System.Threading.Tasks;
 
 namespace Instaface.Caching
 {
+    using System;
+
     public abstract class AsyncCache<TItem> where TItem : class
     {        
         private readonly object _locker = new object();
 
-        private readonly Dictionary<int, Task<TItem>> _entities = new Dictionary<int, Task<TItem>>();
+        private readonly Dictionary<int, Task<TItem>> _items = new Dictionary<int, Task<TItem>>();
 
         protected abstract Task<IReadOnlyCollection<TItem>> GetItems(IEnumerable<int> ids);        
         protected abstract int GetId(TItem item);
 
-        public Task<IReadOnlyCollection<TItem>> Get(IEnumerable<int> idSeq)
+        public Task<IReadOnlyCollection<TItem>> Get(IEnumerable<int> idSeq, Action<bool, IReadOnlyCollection<int>> raiseEvent)
         {
             var ids = idSeq as IReadOnlyCollection<int> ?? idSeq.ToList();
             if (ids.Count == 0) return Task.FromResult(new TItem[0] as IReadOnlyCollection<TItem>);
 
             lock (_locker)
             {
-                var available = ids.Where(i => _entities.ContainsKey(i));
+                var available = ids.Where(i => _items.ContainsKey(i)).ToList();
                 var missing = ids.Except(available).ToList();
 
                 if (missing.Count != 0)
                 {
+                    raiseEvent(false, missing);
+
                     var adding = GetEntitiesById(missing);
 
                     foreach (var id in missing)
                     {
-                        _entities[id] = Fetch(adding, id);
+                        _items[id] = Fetch(adding, id);
                     }
                 }
 
-                return Complete(ids.Select(id => _entities[id]));
+                if (available.Count != 0)
+                {
+                    raiseEvent(true, available);
+                }
+
+                return Complete(ids.Select(id => _items[id]));
             }
         }
 
@@ -41,7 +50,7 @@ namespace Instaface.Caching
         {
             lock (_locker)
             {
-                _entities.Remove(id);
+                _items.Remove(id);
             }
         }
 
@@ -73,7 +82,7 @@ namespace Instaface.Caching
                     {
                         foreach (var id in ids)
                         {
-                            _entities.Remove(id);
+                            _items.Remove(id);
                         }
                     }
                 }

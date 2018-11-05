@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "InstafaceCmd": {
+      "commandName": "Project",
+      "commandLineArgs": "graphserver 003"
+    }
+  }
+}

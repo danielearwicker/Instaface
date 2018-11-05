@@ -13,6 +13,7 @@ namespace GraphServer
     using Instaface.Caching;
     using Instaface.Consensus;
     using Instaface.Db;
+    using Instaface.Monitoring;
 
     public class Startup
     {
@@ -38,6 +39,7 @@ namespace GraphServer
             services.AddSingleton(Configuration);
             services.AddMemoryCache();
             services.AddSingleton<IRedis, Redis>();
+            services.AddMonitoring(Configuration);
             services.AddSingleton<IClusterConfig, ClusterConfig>();
             services.AddSingleton<IConsensusConfig>(s => s.GetRequiredService<IClusterConfig>());
             services.AddSingleton<IConsensusTransport, ConsensusTransport>();
@@ -54,6 +56,13 @@ namespace GraphServer
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseCors(c => c.SetIsOriginAllowedToAllowWildcardSubdomains()
+                              .AllowAnyOrigin()
+                              .AllowAnyMethod()
+                              .AllowAnyHeader()
+                              .AllowCredentials()
+                              .WithExposedHeaders("Content-Disposition"));
 
             app.UseMvc();
 

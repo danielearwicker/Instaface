@@ -1,3 +1,8 @@
+pushd client
+call yarn build
+popd
+robocopy /MIR client\build TimelineWebServer\wwwroot
+
 set DOCKER_ACCOUNT=danielearwicker
 
 pushd GraphServer
