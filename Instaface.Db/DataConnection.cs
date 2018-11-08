@@ -1,12 +1,12 @@
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using Dapper;
-using Microsoft.Extensions.Configuration;
-using MySql.Data.MySqlClient;
-
 namespace Instaface.Db
 {
+    using System.Data;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Dapper;
+    using Microsoft.Extensions.Configuration;
+    using MySql.Data.MySqlClient;
+
     public interface IDataConnection
     {
         Task<IDbConnection> Connect();

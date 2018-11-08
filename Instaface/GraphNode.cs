@@ -1,8 +1,8 @@
-using System;
-using Newtonsoft.Json.Linq;
-
 namespace Instaface
 {
+    using System;
+    using Newtonsoft.Json.Linq;
+
     public class GraphNode
     {
         public int Id { get;set; }

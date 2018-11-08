@@ -1,4 +1,4 @@
-namespace Instaface
+namespace Bot
 {
     public static class FakeData
     {

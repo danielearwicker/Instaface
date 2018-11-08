@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace GraphServer.Controllers
+﻿namespace GraphServer.Controllers
 {
+    using Microsoft.AspNetCore.Mvc;
     using System;
     using System.Text;
     using System.Threading;

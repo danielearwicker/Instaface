@@ -1,10 +1,9 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Refit;
-using Newtonsoft.Json.Linq;
-
 namespace Instaface
 {
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+    using Refit;
+    using Newtonsoft.Json.Linq;
     using System;
 
     public interface IGraphDataRead

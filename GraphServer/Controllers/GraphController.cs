@@ -1,12 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Instaface;
-using Instaface.Caching;
-using Newtonsoft.Json.Linq;
-
-namespace GraphServer.Controllers
+﻿namespace GraphServer.Controllers
 {
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Mvc;
+    using Instaface;
+    using Instaface.Caching;
+    using Newtonsoft.Json.Linq;
+
     [Route("api/[controller]")]
     [ApiController]
     public class GraphController : ControllerBase, IGraphCache, IGraphLeader

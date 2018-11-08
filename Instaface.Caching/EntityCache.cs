@@ -1,8 +1,8 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 namespace Instaface.Caching
 {
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+
     public class EntityCache : AsyncCache<Entity>
     {
         private readonly IGraphData _source;

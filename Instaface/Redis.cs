@@ -1,8 +1,7 @@
-using Microsoft.Extensions.Configuration;
-using StackExchange.Redis;
-
 namespace Instaface
 {
+    using Microsoft.Extensions.Configuration;
+    using StackExchange.Redis;
     using System;
     using System.Linq;
     using System.Net;

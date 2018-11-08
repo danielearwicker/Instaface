@@ -1,11 +1,9 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
-
 namespace Instaface.Caching
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Newtonsoft.Json.Linq;
     using System.Diagnostics;
 
     public interface IGraphCache : IGraphQuery, IGraphData { }

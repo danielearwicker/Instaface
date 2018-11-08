@@ -1,12 +1,12 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Diagnostics;
-
 namespace Instaface
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Newtonsoft.Json.Linq;
+    using System;
+    using System.Diagnostics;
+
     public class QueryRequest
     {
         public IReadOnlyCollection<int> Entities { get; set; }
