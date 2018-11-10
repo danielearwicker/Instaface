@@ -4,7 +4,7 @@ It's:
 
 * A little demo of a social graph - entites (`user`, `status`) and associations (`friend`, `likes`, `likedby`), both of which can have key-value properties.
 * MySQL data layer at the bottom
-* A graph service, `GraphServer`, implemented as a cluster of nodes that elect a leader with the relevant parts of the [https://raft.github.io](Raft Consensus Algorithm). They are deployed as container instances and use a Redis instance to get their static configuration.
+* A graph service, `GraphServer`, implemented as a cluster of nodes that elect a leader with the relevant parts of the [Raft Consensus Algorithm](https://raft.github.io). They are deployed as container instances and use a Redis instance to get their static configuration.
 * Live monitoring of the state of the cluster via websocket - the UI (above) shows the navigable social graph and also the current arrangement of nodes and what they're up to. Every so often a Raft heartbeat goes awry and they rearrange themselves. You can simulate partitions by unchecking a node to "unplug" it (it will neither send nor receive heartbeats until you plug it back in).
 * Separation of responsibilities between reads and writers: the leader node handles writes, the followers handle reads. All nodes have internal memory caches. When a follower has a chache miss it fills it from the leader. When the leader has a miss it contacts the database. Consequently only the leader ever talks to the database and the followers act as accumulated replicas.
 * A bot that calls the write API (so contacting the leader) to generate fake user write activity.
