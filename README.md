@@ -1,3 +1,21 @@
+![Demo](demo.gif)
+
+It's:
+
+* A little demo of a social graph - entites (`user`, `status`) and associations (`friend`, `likes`, `likedby`), both of which can have key-value properties.
+* MySQL data layer at the bottom
+* A graph service, `GraphServer`, implemented as a cluster of nodes that elect a leader with the relevant parts of the [https://raft.github.io](Raft Consensus Algorithm). They are deployed as container instances and use a Redis instance to get their static configuration.
+* Live monitoring of the state of the cluster via websocket - the UI (above) shows the navigable social graph and also the current arrangement of nodes and what they're up to. Every so often a Raft heartbeat goes awry and they rearrange themselves. You can simulate partitions by unchecking a node to "unplug" it (it will neither send nor receive heartbeats until you plug it back in).
+* Separation of responsibilities between reads and writers: the leader node handles writes, the followers handle reads. All nodes have internal memory caches. When a follower has a chache miss it fills it from the leader. When the leader has a miss it contacts the database. Consequently only the leader ever talks to the database and the followers act as accumulated replicas.
+* A bot that calls the write API (so contacting the leader) to generate fake user write activity.
+
+## Still thinking about...
+
+* Updates - that is, modifications to existing entities. These are done at the leader. The leader then needs to notify all followers to invalidate any cache entry. It could achieve consistency by waiting for followers to acknowledge before returning to the writing client. But followers may be unavailable temporarily, in which case after a timeout the leader should rely on queued notifications that it retries (in the heartbeat payload, like Raft) until they are acknowledged, and in the meantime there is a risk of nodes returning stale data. C'est la CAP.
+* Failover to a new leader in the face of such updates: any queued notifications need to be persisted so a new leader can resume responsibility for notifying followers of cache invalidations. (If they are pure invalidations then priority is not an issue.)
+
+## Config
+
 `instaface-graphserver` needs a MySQL connection string in an environment variable, e.g.:
 
 ```
@@ -15,10 +33,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE on instaface1.* to 'bob'@'192.168.1.160';
 FLUSH PRIVILEGES;
 ```
 
-
 ## MySQL Replication
 
-You can a MySQL instance enabled for replication in Docker with:
+Haven't used replication in my test setup, but you can get a MySQL instance enabled for replication in Docker with:
 
 ```
 docker run -p 3361:3306 --name mysqlD -e MYSQL_ROOT_PASSWORD=P@ssw0rd -d mysql:latest --server-id=3361 --gtid-mode=ON --enforce-gtid-consistency=TRUE
@@ -57,36 +74,10 @@ and you should eventually see the slave instance listed.
 
 At this point, any changes you make at the master should automatically appear at the slave.
 
-## Multiple GraphServer instances
+## Raft implementation
 
-Each GraphServer instance is configured with the public address it listens on, and the address of the shared Redis. On startup it registers its address on Redis and begins functioning as a follower.
+All in `Instaface.Consensus`. Interesting thing (to me) is that I found it easiest to use something akin to Actor pattern. In each of the three modes (follower, candidate, leader) we poll repeatedly for new events on multiple sources, much like a [single-threaded socket server](https://daniel.haxx.se/docs/poll-vs-select.html) using `select` or `poll`.
 
-All graphservers have a timer running in the background. Every time it restarts it picks a random period between 0.75 and 1 seconds.
+Events are represented by `Task<T>` so can do a one-time transition to the completed state. We can easily wait for one event of several to occur. Consequently incoming heartbeats are best handled by queuing them and providing a way to get a `Task` that completes as soon as a heartbeat is available in the queue.
 
-When a follower receives a heartbeat from the leader, it resets its timer. Thus as long as the leader heartbeats all followers frequently enough (say every 0.5 seconds) they will remain followers.
-
-On missing a heartbeat a follower turns into a candidate. It sends a "are you with me?" to all the other nodes. If a majority response yes, it assumes leadership. If a time limit is reached, it goes back to being a follower, so it will (in the absence of a leader) try another candidacy soon.
-
-On assuming leadership, the current term is incremented. The leader sends heartbeats (containing the term number) to all the other nodes. It does't care whether they respond or not.
-
-The rules ensure that only one node is ever the leader with a given term number.
-
-If a leader receives a heartbeat, it must contain a different term number. If it is higher, the leader switches to being a follower. If it is lower, the leader remains leader (and will therefore send a heartbeat to the other would-be leader). If it's the same, the protocol has broken down somewhere and so the safest thing to do is for it to switch to being a follower.
-
-
-  while (!cancelled)
-  {
-    await Task.Delay(random, cancelled);
-  
-    if   
-  }
-
-A candidate launches N parallel calls, and as soon as it has positive responses from > N/2 it transitions.
-
-It waits for 
-
-
-
-
-
-
+So the state machine is blissfully protected from rude interrupts etc. It just cycles away and waits efficiently when nothing is happening.
