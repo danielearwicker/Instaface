@@ -76,10 +76,9 @@ export class TimelineModel {
     }
 
     private async load() {
-        const id = parseInt(location.hash.substr(1), 10);
+        let id = parseInt(location.hash.substr(1), 10);
         if (isNaN(id)) {
-            this.timeline = undefined;
-            return;
+            id = 888;
         }
 
         this.timeline = await api(`timeline/${id}`);

@@ -1,22 +1,21 @@
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { MonitorModel } from './MonitorModel';
-import { columnHeaderClass, monitorClass, nodeClass, 
-    nodeLabelClass, nodeStatusItemClass } from './MonitorStyles';
+import { columnHeaderClass, nodeClass, nodeLabelClass, nodeStatusItemClass } from './MonitorStyles';
 import { StatusItem } from './StatusItem';
 
 export interface MonitorProps {
     model: MonitorModel;
 }
 
-function getPositionStyle(item: { left: number; top: number; }) {
-    return { left: `${item.left}px`, top: `${item.top}px` };
+function getPositionStyle(item: { left: number; top: number; width: number; }) {
+    return { left: `${item.left}px`, top: `${item.top}px`, width: `${item.width}px` };
 }
 
 export const Monitor = observer(({model}: MonitorProps) => {
 
     return (
-        <div className={monitorClass} ref={model.setWidthElement}>
+        <div className="monitor" ref={model.setWidthElement}>
         {
             model.columns.map(column => (
                 <div className={columnHeaderClass} style={getPositionStyle(column)}>{column.label}</div>
@@ -49,10 +48,10 @@ const StatusLine = observer(({item}: StatusLineProps) => {
 
     const opacity = Math.max(0, 1 - (item.age / 3000));
 
-    const color = item.key === "candidacy" ? "255, 255, 0" :
-                  item.key === "cacheHit" ? "0, 255, 0" :
-                  item.key === "cacheMiss" ? "255, 0, 0" :
-                  "0, 255, 255";
+    const color = item.key === "candidacy" ? "255, 255, 180" :
+                  item.key === "cacheHit" ? "90, 255, 90" :
+                  item.key === "cacheMiss" ? "255, 90, 90" :
+                  "180, 255, 255";
 
     const style = {
         backgroundColor: `rgba(${color}, ${opacity})`

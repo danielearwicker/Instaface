@@ -11,3 +11,42 @@ body {
   right: 0;
   bottom: 0;
 }
+
+.timeline, .monitor {
+  position: absolute;
+}
+
+.timeline {
+  left: 0;
+  top: 0; 
+  overflow: auto; 
+}
+
+.monitor {  
+  right: 0;
+  bottom: 0;
+}
+
+@media (min-aspect-ratio: 3/2) {
+  .timeline {
+    width: 50%;
+    bottom: 0;
+  }
+  
+  .monitor {
+    top: 0;
+    width: 50%;    
+  }  
+}
+
+@media (max-aspect-ratio: 3/2) {
+  .timeline {
+    height: 50%;
+    right: 0;
+  }
+
+  .monitor {
+    left: 0;
+    height: 50%;
+  }  
+}

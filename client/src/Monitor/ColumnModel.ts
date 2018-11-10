@@ -8,6 +8,9 @@ export class ColumnModel {
     @observable
     public top = 0;
 
+    @observable
+    public width = 0;
+
     constructor(public readonly label: string, left: number) {
         this.left = left;
     }

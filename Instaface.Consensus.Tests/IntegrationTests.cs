@@ -118,9 +118,8 @@
             Debug.WriteLine($"{Self}:{msg}");
         };
 
-        public void PublishLeader() { }
-
-        public void PublishFollower(string leader) { }
+        public void PublishLeader(int term) { }
+        public void PublishFollower(string leader, int term) { }
         public void PublishReachable(string node, int term, bool reachable) { }
         public void RaiseEvent(string type, object info = null) { }
     }

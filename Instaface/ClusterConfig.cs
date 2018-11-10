@@ -40,6 +40,7 @@
         private readonly IMemoryCache _cache;
         private readonly IMonitoringEvents _monitoring;
         private readonly ILogger _logger;
+        private readonly string _selfId;
 
         private readonly ConcurrentDictionary<string, bool> _reachable = new ConcurrentDictionary<string, bool>();
 
@@ -59,7 +60,7 @@
             _monitoring = monitoring;
 
             var consensus = configuration.GetSection("Consensus");
-            Self = consensus.GetValue<string>("Self");
+            _selfId = consensus.GetValue<string>("Self");
             ElectionPeriodMin = consensus.GetValue("ElectionPeriodMin", 2400);
             ElectionPeriodMax = consensus.GetValue("ElectionPeriodMax", 3600);
             HeartbeatPeriod = consensus.GetValue("HeartbeatPeriod", 1000);
@@ -74,7 +75,7 @@
             });
         }
 
-        public string Self { get; }
+        public string Self { get; private set; }
         public int ElectionPeriodMin { get; }
         public int ElectionPeriodMax { get; }
         public int HeartbeatPeriod { get; }
@@ -173,22 +174,22 @@
             _monitoring.Event(jObj);
         }
 
-        public void PublishLeader()
+        public void PublishLeader(int term)
         {
-            Console.WriteLine("Became leader");
+            Console.WriteLine($"Became leader in term {term}");
             CurrentLeader = Self;
 
             _reachable.Clear();
 
-            RaiseEvent("leader");
+            RaiseEvent("leader", new {term});
         }
 
-        public void PublishFollower(string leader)
+        public void PublishFollower(string leader, int term)
         {
             Console.WriteLine($"Following {leader}");
             CurrentLeader = leader;
 
-            RaiseEvent("follower", new {leader});
+            RaiseEvent("follower", new {leader, term});
         }
 
         public void PublishReachable(string about, int term, bool reachable)
@@ -196,8 +197,8 @@
             if (_reachable.TryAdd(about, reachable) || 
                 _reachable.TryUpdate(about, reachable, !reachable))
             {
-                RaiseEvent("reachable", new { about, term, reachable });                
-            }            
+                RaiseEvent("reachable", new {about, term, reachable});
+            }
         }
 
         private static (string Value, DateTime Expires) ParseTtlString(string timedString, char separator = '@')
@@ -252,33 +253,40 @@
             {
                 try
                 {
-                    if (Self != null)
+                    if (_selfId != null)
                     {
-                        var oldTimes = (await _redis.Database.SetMembersAsync(ConsensusNodesKey))
-                                       .Select(t => new {parsed = ParseTtlString(t), str = t})
-                                       .Where(t => t.parsed.Value == Self)
-                                       .Select(t => t.str)
-                                       .ToList();
-
-                        var tran = _redis.Database.CreateTransaction();
-
-                        var parts = new List<Task>();
-                        parts.AddRange(oldTimes.Select(o => tran.SetRemoveAsync(ConsensusNodesKey, o)));
-                        parts.Add(tran.SetAddAsync(ConsensusNodesKey, BuildTtlString(Self, TimeSpan.FromMinutes(1))));
-
-                        if (CurrentLeader == Self)
+                        if (Self == null)
                         {
-                            parts.Add(tran.KeyDeleteAsync(ConsensusFollowerKeyPrefix + Self));
-                            parts.Add(tran.StringSetAsync(ConsensusLeaderKey, Self));
+                            Self = await _redis.Database.StringGetAsync($"consensus:ip:{_selfId}");
                         }
                         else
                         {
-                            parts.Add(tran.StringSetAsync(ConsensusFollowerKeyPrefix + Self, CurrentLeader));
+                            var oldTimes = (await _redis.Database.SetMembersAsync(ConsensusNodesKey))
+                                           .Select(t => new { parsed = ParseTtlString(t), str = t })
+                                           .Where(t => t.parsed.Value == Self)
+                                           .Select(t => t.str)
+                                           .ToList();
+
+                            var tran = _redis.Database.CreateTransaction();
+
+                            var parts = new List<Task>();
+                            parts.AddRange(oldTimes.Select(o => tran.SetRemoveAsync(ConsensusNodesKey, o)));
+                            parts.Add(tran.SetAddAsync(ConsensusNodesKey, BuildTtlString(Self, TimeSpan.FromMinutes(1))));
+
+                            if (CurrentLeader == Self)
+                            {
+                                parts.Add(tran.KeyDeleteAsync(ConsensusFollowerKeyPrefix + Self));
+                                parts.Add(tran.StringSetAsync(ConsensusLeaderKey, Self));
+                            }
+                            else
+                            {
+                                parts.Add(tran.StringSetAsync(ConsensusFollowerKeyPrefix + Self, CurrentLeader));
+                            }
+
+                            parts.Add(tran.ExecuteAsync());
+
+                            await Task.WhenAll(parts);
                         }
-
-                        parts.Add(tran.ExecuteAsync());
-
-                        await Task.WhenAll(parts);
                     }
                     else
                     {

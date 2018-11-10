@@ -6,7 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.Fluent" Version="1.16.1" />
+    <PackageReference Include="StackExchange.Redis.StrongName" Version="1.2.4" />
   </ItemGroup>
 
 </Project>

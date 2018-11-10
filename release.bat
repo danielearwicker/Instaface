@@ -1,3 +1,3 @@
 pushd InstafaceCmd
-dotnet run --no-build ..\..\Azure.json
+dotnet run ..\..\Azure.json
 popd

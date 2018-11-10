@@ -11,6 +11,9 @@ export class NodeModel {
     public top = 0;
 
     @observable
+    public width = 0;
+
+    @observable
     public statusItems: StatusItem[] = [];
 
     @observable
@@ -23,7 +26,8 @@ export class NodeModel {
 
     @observable
     private reachableValue = true;
-    private reachableTerm = -1;
+    
+    private term = -1;
 
     get reachable() {
         return this.reachableValue;
@@ -38,16 +42,21 @@ export class NodeModel {
         return getKeyedItem(this.statusItems, key, k => new StatusItem(k));        
     }
 
-    public setRole(leader: boolean, priority: boolean) {
-        if (priority || (this.leader === undefined)) {
+    public setRole(term: number, leader: boolean) {
+        if (term >= this.term) {
             this.leader = leader;
+            this.term = term;
+
+            if (leader) {
+                this.reachableValue = true;
+            }
         }
     }
 
     public setReachable(term: number, value: boolean) {
-        if (term >= this.reachableTerm) {
+        if (term >= this.term) {
             this.reachableValue = value;
-            this.reachableTerm = term;
+            this.term = term;
 
             if (!value) {
                 this.leader = false;
@@ -81,7 +90,7 @@ export function getKeyedItem<T extends { readonly key: string }>(
 }
 
 function extractLabel(key: string) {
-    let m = /([\d\w]+)\./.exec(key);
+    let m = /([\d\.]+)/.exec(key);
     if (m) { return m[1] };
 
     m = /localhost:([\d]+)/.exec(key);

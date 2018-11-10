@@ -2,7 +2,7 @@ import { observer } from 'mobx-react';
 import * as React from 'react';
 import { TimelineItem } from './TimelineItem';
 import { TimelineModel } from './TimelineModel';
-import { statsClass, timelineClass, timelineWrapperClass } from './TimelineStyles';
+import { statsClass, timelineClass } from './TimelineStyles';
 
 export interface TimelineProps {
   model: TimelineModel;
@@ -23,7 +23,7 @@ export const Timeline = observer(({model}: TimelineProps) => {
   const network = timeline.overallTime - stats.timeRunning;
 
   return (
-    <div className={timelineWrapperClass}>
+    <div className="timeline">
       <h1>{owner.firstName} {owner.lastName}</h1>
 
       <div className={statsClass}>

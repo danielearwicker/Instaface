@@ -37,8 +37,8 @@ export class MonitorModel {
     public async connected() {
         const state: ClusterState = await api("timeline/cluster");
 
-        this.node(state.leader).setRole(true, false);
-        state.followers.forEach(f => this.node(f).setRole(false, false));
+        this.node(state.leader).setRole(-1, true);
+        state.followers.forEach(f => this.node(f).setRole(-1, false));
         state.unreachable.forEach(f => this.node(f).setReachable(-1, false));
         
         this.updatePositions();
@@ -52,10 +52,10 @@ export class MonitorModel {
 
         switch (info.type) {
             case "leader":
-                this.node(info.source).setRole(true, true);
+                this.node(info.source).setRole(info.term, true);
                 break;
             case "follower":
-                this.node(info.source).setRole(false, true);
+                this.node(info.source).setRole(info.term, false);
                 break;
             case "reachable":
                 this.node(info.about).setReachable(info.term, info.reachable);
@@ -78,7 +78,7 @@ export class MonitorModel {
 
     @action
     public updatePositions() {        
-        const gap = 16;
+        const gap = 24;
         
         const width = this.widthElement ? this.widthElement.clientWidth : 400;
 
@@ -86,11 +86,13 @@ export class MonitorModel {
         const columnWidth = available / this.columns.length;
 
         for (let c = 0; c < this.columns.length; c++) {
-            this.columns[c].left = gap + c * (columnWidth + gap);
-            this.columns[c].top = gap; 
+            const column = this.columns[c];
+            column.left = gap + c * (columnWidth + gap);
+            column.top = gap; 
+            column.width = columnWidth;
         }
 
-        const lineDepth = 20;
+        const lineDepth = 14;
         
         const updateColumn = (column: number, predicate: (n: NodeModel) => boolean) => {
             let y = gap + lineDepth * 1.5;
@@ -98,6 +100,7 @@ export class MonitorModel {
             for (const node of this.nodes.filter(predicate)) {
                 node.left = this.columns[column].left;
                 node.top = y;
+                node.width = columnWidth;
                 y += gap + (lineDepth * (1 + node.statusItems.length));
             }
         }

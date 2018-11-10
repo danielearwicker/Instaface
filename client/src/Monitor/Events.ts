@@ -2,26 +2,28 @@ export interface SourcedEvent {
     source: string;
 }
 
-export interface LeaderEvent extends SourcedEvent {
+export interface TermedEvent extends SourcedEvent {
+    term: number;
+}
+
+export interface LeaderEvent extends TermedEvent {
     type: "leader"
 }
 
-export interface FollowerEvent extends SourcedEvent {
+export interface FollowerEvent extends TermedEvent {
     type: "follower"
     leader: string;
 }
 
-export interface ReachableEvent extends SourcedEvent {
+export interface ReachableEvent extends TermedEvent {
     type: "reachable"
-    about: string;
-    term: number;
+    about: string;    
     reachable: boolean;
 }
 
-export interface CandidacyEvent extends SourcedEvent {
+export interface CandidacyEvent extends TermedEvent {
     type: "candidacy"
     enabled: boolean;
-    term: number;
 }
 
 export interface CacheEvent extends SourcedEvent {

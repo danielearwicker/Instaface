@@ -2,7 +2,7 @@
   "profiles": {
     "InstafaceCmd": {
       "commandName": "Project",
-      "commandLineArgs": "graphserver 003"
+      "commandLineArgs": "C:\\_Dev\\github\\danielearwicker\\Azure.json /client C:\\_Dev\\github\\danielearwicker\\Instaface\\client\\build"
     }
   }
 }

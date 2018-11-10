@@ -1,15 +1,6 @@
 import { style } from "typestyle";
 import { NestedCSSProperties } from 'typestyle/lib/types';
 
-export const monitorClass = style({
-  backgroundColor: "#EEE",
-  position: "absolute",
-  right: "0",
-  top: "0",
-  width: "50%",
-  bottom: "0"  
-});
-
 export const positionAnimation: NestedCSSProperties = {
   position: "absolute",
   transitionDuration: "300ms",
@@ -17,22 +8,32 @@ export const positionAnimation: NestedCSSProperties = {
 };
 
 export const columnHeaderClass = style(positionAnimation, {
-  fontStyle: "italic"
+  fontStyle: "italic",
+  fontSize: "0.7em"
 });
 
 export const nodeClass = style(positionAnimation, {
-  backgroundColor: "white",
-  border: "1px solid silver",
-  borderRadius: "8px",
+  border: "1px solid #ddd",
+  borderRadius: "4px",
+  boxShadow: "4px 4px 4px #eee",
   padding: "5px",  
+  fontSize: "0.7em",
+  $nest: {
+    "label *": {
+      verticalAlign: "middle"
+    }
+  }
 });
 
 export const nodeLabelClass = style({
-  fontWeight: "bold"
+  fontWeight: "bold",
+  whiteSpace: "nowrap",
+  overflow: "hidden"
 });
 
 export const nodeStatusItemClass = style({
   fontStyle: "italic",
+  borderRadius: "4px",
   transitionDuration: "2s",
   transitionProperty: "background-color"
 });

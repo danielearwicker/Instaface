@@ -1,4 +1,4 @@
-﻿namespace Instaface.Consensus
+namespace Instaface.Consensus
 {
     using System;
     using System.Collections.Generic;
@@ -39,8 +39,8 @@
 
         Action<string> Log { get; }
 
-        void PublishLeader();
-        void PublishFollower(string leader);
+        void PublishLeader(int term);
+        void PublishFollower(string leader, int term);
         void PublishReachable(string node, int term, bool reachable);
 
         void RaiseEvent(string type, object info = null);
@@ -128,7 +128,7 @@
                     Config.Log($"becoming leader in term {_state.Term}");
                     _state = new ConsensusStateSnapshot(ConsensusModes.Leader, Config.Self, _state.Term);
 
-                    Config.PublishLeader();
+                    Config.PublishLeader(_state.Term);
                 }
             }
         }
@@ -194,7 +194,7 @@
 
                 Config.Log($"votes for {message}");
                 _state = new ConsensusStateSnapshot(ConsensusModes.Follower, message.From, message.Term);
-                Config.PublishFollower(message.From);
+                Config.PublishFollower(message.From, _state.Term);
                 return true;
             }
         }
@@ -203,6 +203,12 @@
         {
             while (!cancellation.IsCancellationRequested)
             {
+                if (Config.Self == null)
+                {
+                    await Task.Delay(1000);
+                    continue;
+                }
+
                 try
                 {
                     await State.Mode(this);

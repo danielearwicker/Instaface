@@ -1,14 +1,5 @@
 import { style } from "typestyle";
 
-export const timelineWrapperClass = style({
-  position: "absolute",
-  left: "0",
-  top: "0",
-  width: "50%",
-  bottom: "0",
-  overflow: "auto"
-});
-
 export const statsClass = style({
   color: "silver",
   fontSize: "0.6em"

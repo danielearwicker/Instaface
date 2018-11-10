@@ -50,6 +50,7 @@ namespace TimelineWebServer
                 app.UseExceptionHandler("/Error");
             }
 
+            app.UseDefaultFiles();
             app.UseStaticFiles();
             app.UseCookiePolicy();
 

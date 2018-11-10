@@ -5,8 +5,13 @@ namespace InstafaceCmd
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Threading.Tasks;
+    using Microsoft.AspNetCore.StaticFiles;
     using Microsoft.Azure.Management.ResourceManager.Fluent;
+    using Microsoft.WindowsAzure.Storage;
+    using Microsoft.WindowsAzure.Storage.Auth;
     using Newtonsoft.Json.Linq;
+    using StackExchange.Redis;
 
     public class Program
     {
@@ -15,18 +20,36 @@ namespace InstafaceCmd
 
         public static void Main(string[] args)
         {
-            StartContainer(args[0], GraphServer, "001");
-            StartContainer(args[0], GraphServer, "002");
-            StartContainer(args[0], GraphServer, "003");
-            StartContainer(args[0], GraphServer, "004");
-            StartContainer(args[0], GraphServer, "005");
-            StartContainer(args[0], TimelineServer, "001");
+            var config = JObject.Parse(File.ReadAllText(args[0]));
+
+            if (args.Length == 3 && args[1] == "/client")
+            {
+                DeployFolderToStorage(config, args[2]);
+                return;
+            }
+
+            if (args.Length == 1)
+            {
+                args = args.Concat(new[] {GraphServer, TimelineServer}).ToArray();
+            }
+
+            if (args.Contains(GraphServer))
+            {
+                StartContainer(config, GraphServer, "001");
+                StartContainer(config, GraphServer, "002");
+                StartContainer(config, GraphServer, "003");
+                StartContainer(config, GraphServer, "004");
+                StartContainer(config, GraphServer, "005");
+            }
+
+            if (args.Contains(TimelineServer))
+            {
+                StartContainer(config, TimelineServer, "001");
+            }
         }
 
-        private static void StartContainer(string configPath, string type, string instance)
+        private static void StartContainer(JObject config, string type, string instance)
         {
-            var config = JObject.Parse(File.ReadAllText(configPath));
-
             var clientId = config["clientId"].Value<string>();
             var clientSecret = config["clientSecret"].Value<string>();
             var tenantId = config["tenantId"].Value<string>();
@@ -56,21 +79,31 @@ namespace InstafaceCmd
                 ["Redis__ConnectionString"] = redis
             };
 
+            var selfId = Guid.NewGuid();
+
             if (type == GraphServer)
             {
                 env["ConnectionStrings__DefaultConnection"] = mysql;
-                env["Consensus__Self"] = $"http://{containerGroupName}.{azureRegion.Name}.azurecontainer.io";
+                env["Consensus__Self"] = $"{selfId}";
             }
 
+            var redisConnection = ConnectionMultiplexer.Connect(redis);
+            var redisDb = redisConnection.GetDatabase();
+
+            redisDb.KeyDelete($"consensus:ip:{selfId}");
+            
             var existing = azure.ContainerGroups.ListByResourceGroup(resourceGroupName)
                                 .FirstOrDefault(g => g.Name == containerGroupName);
             if (existing != null)
             {
+                Console.WriteLine($"Deleting existing {containerGroupName}");
                 azure.ContainerGroups.DeleteById(existing.Id);
             }
 
+            Console.WriteLine($"Creating {containerGroupName}");
+
             // Create the container group
-            azure.ContainerGroups.Define(containerGroupName)
+            var def = azure.ContainerGroups.Define(containerGroupName)
                  .WithRegion(azureRegion)
                  .WithExistingResourceGroup(resourceGroupName)
                  .WithLinux()
@@ -85,6 +118,33 @@ namespace InstafaceCmd
                  .Attach()
                  .WithDnsPrefix(containerGroupName)
                  .Create();
+            
+            redisDb.StringSet($"consensus:ip:{selfId}", $"http://{def.IPAddress}");
+        }
+
+        private static void DeployFolderToStorage(JObject config, string fromFolder)
+        {
+            var conStr = config["storageAccount"].Value<string>();
+            var account = CloudStorageAccount.Parse(conStr);
+            var client = account.CreateCloudBlobClient();
+
+            var web = client.GetContainerReference("$web");
+
+            var contentTypes = new FileExtensionContentTypeProvider();
+            
+            foreach (var file in Directory.EnumerateFiles(fromFolder, "*", new EnumerationOptions { RecurseSubdirectories = true }))
+            {
+                var path = file.Substring(fromFolder.Length + 1).Replace('\\', '/');
+                var blob = web.GetBlockBlobReference(path);
+
+                if (!contentTypes.TryGetContentType(file, out var contentType))
+                {
+                    contentType = "application/octet-stream";
+                }
+
+                blob.Properties.ContentType = contentType;
+                blob.UploadFromFileAsync(file).Wait();
+            }
         }
     }
 }
